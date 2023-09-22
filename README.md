@@ -1,1 +1,1 @@
-# blazor-server-coding-assignment-
+# blazor-server-coding-assignment
