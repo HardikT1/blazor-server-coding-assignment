@@ -1,0 +1,78 @@
+﻿
+
+
+<AddOperationComponent operations="@operations" OnOperationAdded="@RefreshOperations"></AddOperationComponent>
+<AddNewDeviceComponent operations="@operations" operationId="@OperationId" OnOperationAdded="@RefreshOperations"></AddNewDeviceComponent>
+<div class="d-flex justify-content-between align-items-center">
+    <button class="btn btn-primary mb-3" @onclick="ShowAddOperationModal">New Operation</button>
+</div>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Order</th>
+            <th>Image</th>
+            <th>Device</th>
+            <th>DeviceType</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var operation in operations)
+        {
+            <tr>
+                <td>@operation.Name</td>
+                <td>@operation.OrderInWhichToPerform</td>
+                <td>
+                    @if (operation.ImageData != null && operation.ImageData.Length > 0)
+                    {
+                        <img style="height:100px;width:100px" src="data:image/jpeg;base64,@Convert.ToBase64String(operation.ImageData)" alt="Uploaded Image" />
+                    }
+                </td>
+                <td>@operation.Device.Name</td>
+                <td>
+                    @if (operation.Device.DeviceType != DeviceType.None)
+                    {
+                        @operation.Device.DeviceType
+                    }
+                </td>
+               
+                <td>
+                    <button class="btn btn-primary py-1 px-2" title="New Device" @onclick="() => AddNewDevice(operation.OperationID)"><i class="bi bi-plus-square-fill"></i> Add Device</button>
+                    <button class="btn btn-danger py-1 px-2" @onclick="() => RemoveOperation(operation)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+@code {
+    private IList<Operation> operations = new List<Operation>();
+    private int OperationId = 0;
+    protected override async Task OnInitializedAsync()
+    {
+        operations = await BlazorServerCoding.Data.OperationService.GetOperationList();
+    }
+    [Inject] IJSRuntime JSRuntime { get; set; }
+    void ShowAddOperationModal()
+    {
+        JSRuntime.InvokeVoidAsync("showModal", "addOperationModal");
+    }
+    void AddNewDevice(int operationId)
+    {
+        OperationId = operationId;
+        JSRuntime.InvokeVoidAsync("showModal", "addNewDeviceModal");
+
+    }
+    void RemoveOperation(Operation operation)
+    {
+        operations.Remove(operation);
+    }
+
+    async Task RefreshOperations()
+    {
+        // The operations list is already updated in memory
+        // No need to fetch data from a database
+    }
+}

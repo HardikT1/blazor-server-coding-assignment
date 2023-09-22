@@ -1,0 +1,105 @@
+﻿@using System.IO;
+@using Microsoft.AspNetCore.Components.Forms;
+<div class="modal fade" id="addOperationModal" tabindex="-1" role="dialog" aria-labelledby="addOperationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form @onsubmit="AddOperation">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Operation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Operation Name textbox -->
+                    <div class="form-group">
+                        <label for="operationName">Name</label>
+                        <input type="text" class="form-control" id="operationName" placeholder="Enter operation name" @bind="newOperation.Name" required />
+                    </div>
+                    <!-- OrderInWhichToPerform with number textbox -->
+                    <div class="form-group">
+                        <label for="orderInWhichToPerform">Order In Which To Perform</label>
+                        <input type="number" class="form-control" id="orderInWhichToPerform" @bind="newOperation.OrderInWhichToPerform" min="1" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="ImageData">Image</label>
+                        <InputFile OnChange="HandleFileUpload" class="form-control" id="ImageData" required />
+                    </div>
+                    <!-- Device textbox -->
+                    <!--<div class="form-group">
+                        <label for="device">Device</label>
+                        <input type="text" class="form-control" id="device" placeholder="Enter device name" @bind="newOperation.Device.Name" required />
+                    </div>-->
+                    <!-- Device Type dropdown filled with enum values -->
+                    <!--<div class="form-group">
+                        <label for="deviceType">Device Type</label>
+                        <select class="form-control" id="deviceType" @bind="newOperation.Device.DeviceType" required>
+                            @foreach (DeviceType deviceType in Enum.GetValues(typeof(DeviceType)))
+                            {
+                                <option value="@deviceType">@deviceType</option>
+                            }
+                        </select>
+                    </div>-->
+                </div>
+                <div class="modal-footer">
+                    <!-- Save and Cancel buttons -->
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@code {
+    // Property to bind to the Operation model
+    private Operation newOperation = new Operation();
+    [Parameter] public IList<Operation> operations { get; set; }
+    [Parameter] public EventCallback OnOperationAdded { get; set; }
+    private string ImagePath { get; set; } = string.Empty;
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        var imageFile = e.File;
+
+        if (imageFile != null)
+        {
+            if (!imageFile.ContentType.Contains("image"))
+            {
+                // Display an error message or take appropriate action
+                return;
+            }
+
+            // Generate a unique file name (e.g., based on a Guid)
+            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.Name);
+
+            // Define the path where you want to save the image in the "wwwroot/images" folder
+            string imagePath = Path.Combine("images", fileName);
+
+            // Create a FileStream to write the image data to the file
+            using (var fileStream = new FileStream(imagePath, FileMode.Create))
+            {
+                await imageFile.OpenReadStream().CopyToAsync(fileStream);
+            }
+            ImagePath = imagePath;
+        }
+    }
+
+
+    [Inject] IJSRuntime JSRuntime { get; set; }
+    private async Task AddOperation()
+    {
+        //if (newOperation.Device.DeviceType == DeviceType.None)
+        //{
+        //    JSRuntime.InvokeVoidAsync("alert", "Device Type cannot be None.");
+        //    return;
+        //}
+        newOperation.OperationID = operations.Count() + 1;
+        newOperation.Device.DeviceID = operations.Select(x => x.Device).Count() + 1;
+        newOperation.ImageData = File.ReadAllBytes(ImagePath);
+        operations.Add(newOperation);
+        newOperation = new Operation();
+        ImagePath = string.Empty;
+        await OnOperationAdded.InvokeAsync();
+        JSRuntime.InvokeVoidAsync("hideModal", "addOperationModal");
+    }
+
+}

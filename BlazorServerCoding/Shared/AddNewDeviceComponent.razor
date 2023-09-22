@@ -1,0 +1,61 @@
+﻿<div class="modal fade" id="addNewDeviceModal" tabindex="-1" role="dialog" aria-labelledby="addOperationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form @onsubmit="AddDevice">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addOperationModalLabel">Add New Device</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Operation Name textbox -->
+                    <div class="form-group">
+                        <label for="operationName">Name</label>
+                        <input type="text" class="form-control" id="deviceName" placeholder="Enter Device name" @bind="newDevice.Name" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="deviceType">Device Type</label>
+                        <select class="form-control" id="deviceType" @bind="newDevice.DeviceType">
+                            @foreach (DeviceType deviceType in Enum.GetValues(typeof(DeviceType)))
+                            {
+                                <option value="@deviceType">@deviceType</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- Save and Cancel buttons -->
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@code {
+    // Property to bind to the Operation model
+    private Device newDevice = new Device();
+    [Parameter] public IList<Operation> operations { get; set; }
+    [Parameter] public int operationId { get; set; }
+    [Parameter] public EventCallback OnOperationAdded { get; set; }
+    [Inject] IJSRuntime JSRuntime { get; set; }
+    private async Task AddDevice()
+    {
+        if (newDevice.DeviceType == DeviceType.None)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Device Type cannot be None.");
+            return;
+        }
+        var operation = operations.FirstOrDefault(x => x.OperationID == operationId);
+        if (operation != null)
+        {
+            operation.Device.Name = newDevice.Name;
+            operation.Device.DeviceType = newDevice.DeviceType;
+        }
+        newDevice = new Device();
+        await OnOperationAdded.InvokeAsync();
+        JSRuntime.InvokeVoidAsync("hideModal", "addNewDeviceModal");
+    }
+
+}
